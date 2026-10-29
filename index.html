@@ -307,13 +307,19 @@ function render(){
   const J = {P:r.J.P, V:r.J.V, S:r.J.S, C:r.J.C - op};
   const S = {P:r.K.P/2, V:r.K.V/2, S:r.K.S/2, C:(r.K.C + op)/2};
   // KPIs
-  const dPR = r.Jrisk - 1/3;
+  // per categorie: deel John t.o.v. pro rata (vóór opleg); goodUp = meer is gunstig voor John
+  const tile = (cat, label, goodUp) => {
+    const tot = r.J[cat] + r.K[cat], sh = tot ? r.J[cat]/tot : 0, d = sh - 1/3;
+    const cls = Math.abs(d) < 0.0005 ? 'even' : ((d > 0) === goodUp ? 'under' : 'over');
+    const txt = Math.abs(d) < 0.0005 ? '± 0,0 %' : (d > 0 ? '+ ' + pct(d) : '− ' + pct(-d));
+    return `<div><b>${eur(r.J[cat])}</b><em class="${cls}">${txt} t.o.v. pro rata</em><span class="if-label">${label} · ${pct(sh)} van ${eur(tot)}</span></div>`;
+  };
   document.getElementById('kpis').innerHTML =
-    `<div><b>${eur(r.third)}</b><span class="if-label">Een derde per kind</span></div>`+
-    `<div><b class="${op>0?'dn':''}">${eur(Math.abs(op))}</b><span class="if-label">Opleg ${op>0?'John → K+K':'K+K → John'}</span></div>`+
-    `<div><b>${pct(r.Jrisk)}</b><em class="${dPR>0.0005?'over':(dPR<-0.0005?'under':'even')}">${dPR>0.0005?'+ '+pct(dPR):(dPR<-0.0005?'− '+pct(-dPR):'± 0,0 %')} t.o.v. pro rata</em><span class="if-label">John: deel probleemdossiers</span></div>`+
-    `<div><b>${eur(J.P)}</b><span class="if-label">John: probleemdossiers</span></div>`+
-    `<div><b>${eur(J.S)}</b><span class="if-label">John: Sint-Martens-Latem</span></div>`;
+    `<div><b>${eur(r.third)}</b><em class="even">&nbsp;</em><span class="if-label">Een derde per kind</span></div>`+
+    `<div><b class="${op>0?'dn':''}">${eur(Math.abs(op))}</b><em class="even">${eur(Math.abs(op)/2)} per zus</em><span class="if-label">Opleg ${op>0?'John → K+K':'K+K → John'}</span></div>`+
+    tile('P','John: probleemdossiers', false)+
+    tile('V','John: vastgoed buiten Latem', true)+
+    tile('S','John: Sint-Martens-Latem', true);
   const diff = r.Jrisk - 1/3;
   document.getElementById('verdict').innerHTML = `${active?'<span class="if-label" style="color:var(--brand)">'+active+'</span><br>':''}John draagt <b>${pct(r.Jrisk)}</b> van de probleemdossiers (${eur(J.P)} van ${eur(r.stack)}), tegenover een derde van de pot: ${Math.abs(diff)<0.0005?'precies pro rata':(diff>0?'<b>'+pct(diff).replace(' %','')+' %</b> meer dan pro rata':'<b>'+pct(-diff).replace(' %','')+' %</b> minder dan pro rata')}. Elk van Kathy en Kim draagt ${eur(S.P)}. ${op>0?'John betaalt':'Kathy en Kim betalen'} <b>${eur(Math.abs(op))}</b> opleg.`;
   // table 2
