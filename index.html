@@ -139,6 +139,10 @@ figure { margin: 20px 0 0; }
 @media (max-width: 640px) { #comp th, #comp td { padding: 8px 6px; } #comp .n { font-size: 12px; } }
 .chartbox { position: relative; height: 300px; }
 .if-kpis b.dn { color: var(--loss); }
+.if-kpis em { display: block; font: 500 14px/20px var(--mono); font-style: normal; margin: 2px 0 4px; }
+.if-kpis em.over { color: var(--loss); }
+.if-kpis em.under { color: #1a7f37; }
+.if-kpis em.even { color: var(--graphite); }
 @media (max-width: 640px) { .chartbox { height: 340px; } }
 @media print { .presets, .toggle { display: none; } .seg button[aria-pressed="false"] { display: none; } .seg { border: 0; } .seg button[aria-pressed="true"] { background: none; color: var(--ink); padding: 0; } .chartbox { height: 260px; } }
 </style>
@@ -303,10 +307,11 @@ function render(){
   const J = {P:r.J.P, V:r.J.V, S:r.J.S, C:r.J.C - op};
   const S = {P:r.K.P/2, V:r.K.V/2, S:r.K.S/2, C:(r.K.C + op)/2};
   // KPIs
+  const dPR = r.Jrisk - 1/3;
   document.getElementById('kpis').innerHTML =
     `<div><b>${eur(r.third)}</b><span class="if-label">Een derde per kind</span></div>`+
     `<div><b class="${op>0?'dn':''}">${eur(Math.abs(op))}</b><span class="if-label">Opleg ${op>0?'John → K+K':'K+K → John'}</span></div>`+
-    `<div><b>${pct(r.Jrisk)}</b><span class="if-label">John: deel probleemdossiers</span></div>`+
+    `<div><b>${pct(r.Jrisk)}</b><em class="${dPR>0.0005?'over':(dPR<-0.0005?'under':'even')}">${dPR>0.0005?'+ '+pct(dPR):(dPR<-0.0005?'− '+pct(-dPR):'± 0,0 %')} t.o.v. pro rata</em><span class="if-label">John: deel probleemdossiers</span></div>`+
     `<div><b>${eur(J.P)}</b><span class="if-label">John: probleemdossiers</span></div>`+
     `<div><b>${eur(J.S)}</b><span class="if-label">John: Sint-Martens-Latem</span></div>`;
   const diff = r.Jrisk - 1/3;
