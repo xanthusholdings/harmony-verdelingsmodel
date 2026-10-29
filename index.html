@@ -175,7 +175,7 @@ figure { margin: 20px 0 0; }
 
   <section>
     <h2><span class="s">§2</span>Wat elk kind krijgt, na opleg</h2>
-    <p>Na de opleg heeft elk kind exact een derde. De samenstelling verschilt: probleemdossiers, vastgoed buiten Sint-Martens-Latem, Sint-Martens-Latem (Dorsweg en Grote Moortel BV) en cash (ABS, overlopende rekeningen en opleg). Een negatieve cashpositie betekent dat dat kind opleg betaalt.</p>
+    <p>Na de opleg heeft elk kind exact een derde. De samenstelling verschilt: probleemdossiers, vastgoed buiten Sint-Martens-Latem, Sint-Martens-Latem (Dorsweg en Grote Moortel BV) cash (ABS en overlopende rekeningen) en de opleg. Opleg staat apart: wie ze betaalt, krijgt een negatieve balk; wie ze ontvangt, een positieve. Wie ABS-cash toewijst, ziet de cash en de opleg tegen elkaar verschuiven.</p>
     <figure>
       <div class="chartbox"><canvas id="chart" aria-label="Samenstelling per kind na opleg" role="img"></canvas></div>
       <figcaption>Fig. 1 · Samenstelling per kind na opleg, in euro. Kathy en Kim gelijk verdeeld verondersteld. Bron: splitsingsvoorstel 16.10.2026, as of 31 Aug 2026.</figcaption>
@@ -225,7 +225,8 @@ const CAT = {
   P:{name:'Probleemdossiers', color:'#3a414d'},
   V:{name:'Vastgoed buiten Sint-Martens-Latem', color:'#00b4d8'},
   S:{name:'Sint-Martens-Latem', color:'#2b3bf5'},
-  C:{name:'Cash (ABS, overlopend, opleg)', color:'#7357d9'}
+  C:{name:'Cash (ABS, overlopend)', color:'#7357d9'},
+  O:{name:'Opleg (ontvangen + / betaald −)', color:'#8c95a4'}
 };
 const USU = 1602823 * 0.2563;
 const ITEMS = [
@@ -302,10 +303,10 @@ function render(){
   h += `<div class="ar tot" role="row"><div class="nm">Na opleg</div><div class="sp"></div><div class="num"><span class="lbl">John</span>${eur(r.third)}</div><div class="num"><span class="lbl">K+K</span>${eur(2*r.third)}</div></div>`;
   const tb = document.getElementById('alloc'); tb.innerHTML = h;
   tb.querySelectorAll('.seg button').forEach(b => b.onclick = () => { state[b.dataset.id]=b.dataset.a; active=''; render(); });
-  document.getElementById('legend').innerHTML = Object.values(CAT).map(c=>`<span class="cat"><i style="background:${c.color}"></i>${c.name}</span>`).join(' &nbsp; ');
+  document.getElementById('legend').innerHTML = Object.values(CAT).filter(c=>c!==CAT.O).map(c=>`<span class="cat"><i style="background:${c.color}"></i>${c.name}</span>`).join(' &nbsp; ');
   // composition after opleg
-  const J = {P:r.J.P, V:r.J.V, S:r.J.S, C:r.J.C - op};
-  const S = {P:r.K.P/2, V:r.K.V/2, S:r.K.S/2, C:(r.K.C + op)/2};
+  const J = {P:r.J.P, V:r.J.V, S:r.J.S, C:r.J.C, O:-op};
+  const S = {P:r.K.P/2, V:r.K.V/2, S:r.K.S/2, C:r.K.C/2, O:op/2};
   // KPIs
   // per categorie: deel John t.o.v. pro rata (vóór opleg); goodUp = meer is gunstig voor John
   const tile = (cat, label, goodUp) => {
@@ -323,8 +324,8 @@ function render(){
   const diff = r.Jrisk - 1/3;
   document.getElementById('verdict').innerHTML = `${active?'<span class="if-label" style="color:var(--brand)">'+active+'</span><br>':''}John draagt <b>${pct(r.Jrisk)}</b> van de probleemdossiers (${eur(J.P)} van ${eur(r.stack)}), tegenover een derde van de pot: ${Math.abs(diff)<0.0005?'precies pro rata':(diff>0?'<b>'+pct(diff).replace(' %','')+' %</b> meer dan pro rata':'<b>'+pct(-diff).replace(' %','')+' %</b> minder dan pro rata')}. Elk van Kathy en Kim draagt ${eur(S.P)}. ${op>0?'John betaalt':'Kathy en Kim betalen'} <b>${eur(Math.abs(op))}</b> opleg.`;
   // table 2
-  const rows = ['P','V','S','C'].map(k => `<tr><td><span class="cat"><i style="background:${CAT[k].color}"></i>${CAT[k].name}</span></td><td class="n ${J[k]<0?'dn':''}">${eur(J[k])}</td><td class="n ${S[k]<0?'dn':''}">${eur(S[k])}</td><td class="n ${S[k]<0?'dn':''}">${eur(S[k])}</td></tr>`).join('');
-  const tot = o => o.P+o.V+o.S+o.C;
+  const rows = ['P','V','S','C','O'].map(k => `<tr><td><span class="cat"><i style="background:${CAT[k].color}"></i>${CAT[k].name}</span></td><td class="n ${J[k]<0?'dn':''}">${eur(J[k])}</td><td class="n ${S[k]<0?'dn':''}">${eur(S[k])}</td><td class="n ${S[k]<0?'dn':''}">${eur(S[k])}</td></tr>`).join('');
+  const tot = o => o.P+o.V+o.S+o.C+o.O;
   document.querySelector('#comp tbody').innerHTML = rows + `<tr class="total"><td>Totaal na opleg</td><td class="n">${eur(tot(J))}</td><td class="n">${eur(tot(S))}</td><td class="n">${eur(tot(S))}</td></tr>`;
   drawChart(J,S);
   save();
@@ -333,7 +334,7 @@ function render(){
 let chart;
 function drawChart(J,S){
   if(!window.Chart) return;
-  const ds = ['P','V','S','C'].map(k => ({label:CAT[k].name, data:[J[k],S[k],S[k]], backgroundColor:CAT[k].color, borderWidth:0, barPercentage:.6, categoryPercentage:.8}));
+  const ds = ['P','V','S','C','O'].map(k => ({label:CAT[k].name, data:[J[k],S[k],S[k]], backgroundColor:CAT[k].color, borderWidth:0, barPercentage:.6, categoryPercentage:.8}));
   if(chart){ chart.data.datasets.forEach((d,i)=>d.data=ds[i].data); chart.update('none'); return; }
   chart = new Chart(document.getElementById('chart'), {
     type:'bar', data:{labels:['John','Kathy','Kim'], datasets:ds},
